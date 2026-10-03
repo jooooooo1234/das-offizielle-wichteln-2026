@@ -25,6 +25,7 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
     <h1>Das offizielle<br><span class="gold">Wichteln 2026</span></h1>
     <p class="muted">Trag deinen Namen und drei Wünsche ein. Nach der Auslosung bekommst du einen persönlichen geheimen Link. Darüber siehst du den Namen und die drei Wünsche der Person, für die du wichtelst.</p>
     <div id="publicStatus" class="status">Status wird geladen …</div>
+    <div id="countdown" class="status">Countdown wird geladen …</div>
   </div>
   <div class="card">
     <form id="regForm" class="grid">
@@ -103,6 +104,7 @@ const API="https://ixwehyverlkeqpgjippr.supabase.co/functions/v1/wichteln-api";
 const params=new URLSearchParams(location.search);const isAdmin=params.get("admin")==="1";const resultToken=params.get("result");
 const tokenKey="wichtel_admin_token";
 const qs=id=>document.getElementById(id);
+let countdownTimer=null;
 if(resultToken){
   qs("publicView").classList.add("hidden");qs("resultView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadResult();
 }else if(isAdmin){
@@ -117,12 +119,31 @@ async function call(body,admin=false){
   if(!r.ok)throw new Error(d.error||"Fehler");
   return d;
 }
+function startCountdown(dateStr,closed){
+  if(countdownTimer)clearInterval(countdownTimer);
+  const el=qs("countdown");
+  if(!el)return;
+  if(closed){el.textContent="⏳ Anmeldung geschlossen.";return}
+  if(!dateStr){el.textContent="⏳ Noch kein Auslosungsdatum festgelegt.";return}
+  const target=new Date(dateStr+"T00:00:00");
+  const tick=()=>{
+    const diff=target-new Date();
+    if(diff<=0){el.textContent="⏳ Die Eintragungszeit ist abgelaufen.";clearInterval(countdownTimer);return}
+    const days=Math.floor(diff/86400000);
+    const hours=Math.floor((diff%86400000)/3600000);
+    const minutes=Math.floor((diff%3600000)/60000);
+    const seconds=Math.floor((diff%60000)/1000);
+    el.textContent="⏳ Noch "+days+" Tage, "+hours+" Std., "+minutes+" Min. und "+seconds+" Sek. zum Eintragen.";
+  };
+  tick();countdownTimer=setInterval(tick,1000);
+}
 async function loadPublic(){
   try{
     const d=await call({action:"status"});
-    qs("publicStatus").textContent=d.limit?d.count+" von "+d.limit+" eingetragen · Versand: "+(d.send_date||"noch nicht festgelegt"):"Die Anmeldung ist noch nicht geöffnet.";
+    qs("publicStatus").textContent=d.limit?d.count+" von "+d.limit+" eingetragen · Auslosung: "+(d.send_date||"noch nicht festgelegt"):"Die Anmeldung ist noch nicht geöffnet.";
     qs("regBtn").disabled=!!d.closed;
-  }catch(e){qs("publicStatus").textContent="Status konnte nicht geladen werden."}
+    startCountdown(d.send_date,!!d.closed);
+  }catch(e){qs("publicStatus").textContent="Status konnte nicht geladen werden.";qs("countdown").textContent="Countdown konnte nicht geladen werden."}
 }
 qs("regForm")?.addEventListener("submit",async e=>{
   e.preventDefault();qs("regMsg").textContent="";

@@ -68,6 +68,14 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
       <div id="names"></div>
     </div>
     <div class="card">
+      <h2>Mail testen</h2>
+      <p class="muted">Schreib hier eine eigene Testliste und sende sie an deine E-Mail-Adresse. Damit prüfst du den Mailversand ohne echte Auslosung.</p>
+      <input id="testMailTo" type="email" placeholder="Deine E-Mail-Adresse">
+      <textarea id="testMailText" placeholder="Zum Beispiel:&#10;Testperson: Max&#10;Wunsch 1: Buch&#10;Wunsch 2: Kaffee&#10;Wunsch 3: Gutschein" style="width:100%;min-height:160px;padding:14px 15px;border-radius:12px;border:1px solid rgba(255,255,255,.18);font:inherit;margin-top:12px"></textarea>
+      <button id="sendTestMail">Testmail senden</button>
+      <p id="testMailMsg"></p>
+    </div>
+    <div class="card">
       <h2>Kostenloser Mailversand</h2>
       <p class="muted">Für den automatischen Versand ist Brevo Free vorbereitet. Dafür musst du einmal eine Absender-E-Mail bestätigen und anschließend hier den API-Schlüssel eintragen.</p>
       <input id="senderEmail" type="email" placeholder="Absender-E-Mail">
@@ -136,6 +144,12 @@ qs("saveSettings")?.addEventListener("click",async()=>{
     await call({action:"save_settings",participant_limit:Number(qs("limit").value),send_date:qs("sendDate").value},true);
     qs("settingsMsg").className="ok";qs("settingsMsg").textContent="Gespeichert.";loadAdmin();
   }catch(e){qs("settingsMsg").className="err";qs("settingsMsg").textContent=e.message}
+});
+qs("sendTestMail")?.addEventListener("click",async()=>{
+ try{
+  await call({action:"test_mail",to:qs("testMailTo").value,text:qs("testMailText").value},true);
+  qs("testMailMsg").className="ok";qs("testMailMsg").textContent="Testmail wurde an Brevo übergeben.";
+ }catch(e){qs("testMailMsg").className="err";qs("testMailMsg").textContent=e.message}
 });
 qs("saveMail")?.addEventListener("click",async()=>{
   try{

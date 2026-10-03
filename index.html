@@ -12,8 +12,8 @@
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.link{color:var(--gold);text-decoration:none;font-weight:700}
 .grid{display:grid;gap:12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}input{width:100%;padding:14px 15px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:#fff;color:#111;font-size:16px}
 button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);color:#10251f;font-weight:900;font-size:16px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
-.status{padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.22);margin:16px 0}.ok{color:var(--ok)}.err{color:var(--danger)}.hidden{display:none}.name{padding:11px 13px;background:rgba(0,0,0,.22);border-radius:10px;margin:8px 0}
-@media(max-width:620px){.row{grid-template-columns:1fr}.hero{padding:22px}.wrap{padding-top:18px}}
+.status{padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.22);margin:16px 0;overflow-wrap:normal;word-break:normal}.ok{color:var(--ok)}.err{color:var(--danger)}.hidden{display:none}.name{padding:11px 13px;background:rgba(0,0,0,.22);border-radius:10px;margin:8px 0}
+@media(max-width:620px){.row{grid-template-columns:1fr}.hero{padding:22px}.wrap{padding-top:18px}.status{font-size:15px;line-height:1.45}}
 </style>
 </head>
 <body>
@@ -105,6 +105,11 @@ const params=new URLSearchParams(location.search);const isAdmin=params.get("admi
 const tokenKey="wichtel_admin_token";
 const qs=id=>document.getElementById(id);
 let countdownTimer=null;
+function formatDateDE(dateStr){
+  if(!dateStr)return "";
+  const m=dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  return m?m[3]+"."+m[2]+"."+m[1]:dateStr;
+}
 if(resultToken){
   qs("publicView").classList.add("hidden");qs("resultView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadResult();
 }else if(isAdmin){
@@ -140,7 +145,7 @@ function startCountdown(dateStr,closed){
 async function loadPublic(){
   try{
     const d=await call({action:"status"});
-    qs("publicStatus").textContent=d.limit?d.count+" von "+d.limit+" eingetragen · Auslosung: "+(d.send_date||"noch nicht festgelegt"):"Die Anmeldung ist noch nicht geöffnet.";
+    qs("publicStatus").textContent=d.limit?d.count+" von "+d.limit+" eingetragen · Auslosung: "+(d.send_date?formatDateDE(d.send_date):"noch nicht festgelegt"):"Die Anmeldung ist noch nicht geöffnet.";
     qs("regBtn").disabled=!!d.closed;
     startCountdown(d.send_date,!!d.closed);
   }catch(e){qs("publicStatus").textContent="Status konnte nicht geladen werden.";qs("countdown").textContent="Countdown konnte nicht geladen werden."}

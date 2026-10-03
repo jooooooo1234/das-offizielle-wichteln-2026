@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Das offizielle Wichteln 2026</title>
+<style>
+:root{--bg:#0c2e24;--card:#123a2f;--gold:#e9c46a;--text:#f8f4e8;--muted:#cbd8d2;--danger:#ffb4b4;--ok:#9fe1b5}
+*{box-sizing:border-box}body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:radial-gradient(circle at top,#184d3d 0,#0c2e24 45%,#071b16 100%);color:var(--text);min-height:100vh}
+.wrap{max-width:820px;margin:auto;padding:34px 18px 60px}.hero,.card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.13);border-radius:24px;box-shadow:0 20px 70px rgba(0,0,0,.28);backdrop-filter:blur(10px)}
+.hero{padding:30px}.card{padding:22px;margin-top:18px}.eyebrow{color:var(--gold);font-weight:800;letter-spacing:.08em;font-size:13px}.hero h1{font-size:clamp(38px,8vw,64px);line-height:.98;margin:12px 0 18px}.gold{color:var(--gold)}p{line-height:1.55}.muted{color:var(--muted)}
+.topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.link{color:var(--gold);text-decoration:none;font-weight:700}
+.grid{display:grid;gap:12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}input{width:100%;padding:14px 15px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:#fff;color:#111;font-size:16px}
+button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);color:#10251f;font-weight:900;font-size:16px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
+.status{padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.22);margin:16px 0}.ok{color:var(--ok)}.err{color:var(--danger)}.hidden{display:none}.name{padding:11px 13px;background:rgba(0,0,0,.22);border-radius:10px;margin:8px 0}
+@media(max-width:620px){.row{grid-template-columns:1fr}.hero{padding:22px}.wrap{padding-top:18px}}
+</style>
+</head>
+<body>
+<main class="wrap">
+<div class="topbar"><div class="eyebrow">🎁 FREUNDESGRUPPE · 2026</div><a class="link" id="switchLink" href="?admin=1">Admin</a></div>
+
+<section id="publicView">
+  <div class="hero">
+    <h1>Das offizielle<br><span class="gold">Wichteln 2026</span></h1>
+    <p class="muted">Trag deinen Namen, deine E-Mail-Adresse und drei Wünsche ein. Am festgelegten Tag bekommst du per Mail den Namen und die drei Wünsche der Person, für die du wichtelst.</p>
+    <div id="publicStatus" class="status">Status wird geladen …</div>
+  </div>
+  <div class="card">
+    <form id="regForm" class="grid">
+      <input name="name" placeholder="Dein Name" maxlength="80" required>
+      <input name="email" type="email" placeholder="Deine E-Mail-Adresse" required>
+      <input name="wish1" placeholder="Wunsch 1" maxlength="300" required>
+      <input name="wish2" placeholder="Wunsch 2" maxlength="300" required>
+      <input name="wish3" placeholder="Wunsch 3" maxlength="300" required>
+      <button id="regBtn">Beim Wichteln eintragen 🎄</button>
+    </form>
+    <p id="regMsg"></p>
+    <p class="muted" style="font-size:13px">E-Mail-Adressen und Wünsche sind nicht öffentlich sichtbar.</p>
+  </div>
+</section>
+
+<section id="adminView" class="hidden">
+  <div class="hero">
+    <h1>Admin<br><span class="gold">Wichteln 2026</span></h1>
+    <p class="muted">Hier stellst du Teilnehmerzahl und Versanddatum ein und siehst nur, wer sich bereits eingetragen hat.</p>
+  </div>
+  <div id="loginCard" class="card">
+    <h2>Anmelden</h2>
+    <input id="adminPw" type="password" placeholder="Admin-Passwort">
+    <button id="loginBtn">Anmelden</button>
+    <p id="loginMsg"></p>
+  </div>
+
+  <div id="adminPanel" class="hidden">
+    <div class="card">
+      <h2>Einstellungen</h2>
+      <div class="row">
+        <div><label>Teilnehmerzahl</label><input id="limit" type="number" min="2"></div>
+        <div><label>Versanddatum</label><input id="sendDate" type="date"></div>
+      </div>
+      <button id="saveSettings">Speichern</button>
+      <p id="settingsMsg"></p>
+    </div>
+    <div class="card">
+      <h2>Status</h2>
+      <div id="adminSummary" class="status">Lade …</div>
+      <div id="names"></div>
+    </div>
+    <div class="card">
+      <h2>Kostenloser Mailversand</h2>
+      <p class="muted">Für den automatischen Versand ist Brevo Free vorbereitet. Dafür musst du einmal eine Absender-E-Mail bestätigen und anschließend hier den API-Schlüssel eintragen.</p>
+      <input id="senderEmail" type="email" placeholder="Absender-E-Mail">
+      <input id="mailKey" type="password" placeholder="Brevo API-Schlüssel">
+      <button id="saveMail">Mailzugang speichern</button>
+      <p id="mailMsg"></p>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+const API="https://ixwehyverlkeqpgjippr.supabase.co/functions/v1/wichteln-api";
+const isAdmin=new URLSearchParams(location.search).get("admin")==="1";
+const tokenKey="wichtel_admin_token";
+const qs=id=>document.getElementById(id);
+if(isAdmin){qs("publicView").classList.add("hidden");qs("adminView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadAdmin();}
+else loadPublic();
+
+async function call(body,admin=false){
+  const headers={"content-type":"application/json"};
+  if(admin){const t=localStorage.getItem(tokenKey);if(t)headers["x-admin-token"]=t;}
+  const r=await fetch(API,{method:"POST",headers,body:JSON.stringify(body)});
+  const d=await r.json().catch(()=>({}));
+  if(!r.ok)throw new Error(d.error||"Fehler");
+  return d;
+}
+async function loadPublic(){
+  try{
+    const d=await call({action:"status"});
+    qs("publicStatus").textContent=d.limit?d.count+" von "+d.limit+" eingetragen · Versand: "+(d.send_date||"noch nicht festgelegt"):"Die Anmeldung ist noch nicht geöffnet.";
+    qs("regBtn").disabled=!!d.closed;
+  }catch(e){qs("publicStatus").textContent="Status konnte nicht geladen werden."}
+}
+qs("regForm")?.addEventListener("submit",async e=>{
+  e.preventDefault();qs("regMsg").textContent="";
+  try{
+    const data=Object.fromEntries(new FormData(e.currentTarget));
+    await call({action:"register",...data});
+    qs("regMsg").className="ok";qs("regMsg").textContent="Geschafft! Du bist beim Wichteln dabei. 🎁";
+    e.currentTarget.reset();loadPublic();
+  }catch(err){qs("regMsg").className="err";qs("regMsg").textContent=err.message;}
+});
+qs("loginBtn")?.addEventListener("click",async()=>{
+  try{
+    const d=await call({action:"login",password:qs("adminPw").value});
+    localStorage.setItem(tokenKey,d.token);qs("adminPw").value="";qs("loginMsg").textContent="";loadAdmin();
+  }catch(e){qs("loginMsg").className="err";qs("loginMsg").textContent="Falsches Passwort."}
+});
+async function loadAdmin(){
+  try{
+    const d=await call({action:"admin_status"},true);
+    qs("loginCard").classList.add("hidden");qs("adminPanel").classList.remove("hidden");
+    qs("limit").value=d.settings.participant_limit||"";
+    qs("sendDate").value=d.settings.send_date||"";
+    qs("senderEmail").value=d.settings.mail_sender_email||"";
+    qs("adminSummary").textContent=d.count+" von "+(d.settings.participant_limit||"–")+" eingetragen · Auslosung: "+(d.settings.draw_completed?"erfolgt":"offen")+" · Mail: "+(d.mail_ready?"bereit":"noch nicht eingerichtet");
+    qs("names").innerHTML="";
+    d.names.forEach(n=>{const el=document.createElement("div");el.className="name";el.textContent=n;qs("names").appendChild(el)});
+  }catch(e){
+    localStorage.removeItem(tokenKey);qs("loginCard").classList.remove("hidden");qs("adminPanel").classList.add("hidden");
+  }
+}
+qs("saveSettings")?.addEventListener("click",async()=>{
+  try{
+    await call({action:"save_settings",participant_limit:Number(qs("limit").value),send_date:qs("sendDate").value},true);
+    qs("settingsMsg").className="ok";qs("settingsMsg").textContent="Gespeichert.";loadAdmin();
+  }catch(e){qs("settingsMsg").className="err";qs("settingsMsg").textContent=e.message}
+});
+qs("saveMail")?.addEventListener("click",async()=>{
+  try{
+    await call({action:"save_mail",sender_email:qs("senderEmail").value,api_key:qs("mailKey").value},true);
+    qs("mailMsg").className="ok";qs("mailMsg").textContent="Mailzugang gespeichert.";qs("mailKey").value="";loadAdmin();
+  }catch(e){qs("mailMsg").className="err";qs("mailMsg").textContent=e.message}
+});
+</script>
+</body>
+</html>

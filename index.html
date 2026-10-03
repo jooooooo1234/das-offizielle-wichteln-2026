@@ -23,7 +23,7 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
 <section id="publicView">
   <div class="hero">
     <h1>Das offizielle<br><span class="gold">Wichteln 2026</span></h1>
-    <p class="muted">Trag deinen Namen, deine E-Mail-Adresse und drei Wünsche ein. Am festgelegten Tag bekommst du per Mail den Namen und die drei Wünsche der Person, für die du wichtelst.</p>
+    <p class="muted">Trag deinen Namen, deine E-Mail-Adresse und drei Wünsche ein. Nach der Auslosung bekommst du einen persönlichen geheimen Link. Darüber siehst du den Namen und die drei Wünsche der Person, für die du wichtelst.</p>
     <div id="publicStatus" class="status">Status wird geladen …</div>
   </div>
   <div class="card">
@@ -40,10 +40,25 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
   </div>
 </section>
 
+
+<section id="resultView" class="hidden">
+  <div class="hero">
+    <div class="eyebrow">🎁 DEIN GEHEIMER WICHTEL-LINK</div>
+    <h1>Dein Wichtel<br><span class="gold">2026</span></h1>
+    <div id="resultStatus" class="status">Auslosung wird geladen …</div>
+  </div>
+  <div id="resultCard" class="card hidden">
+    <p class="muted">Du wichtelst für:</p>
+    <h2 id="resultName"></h2>
+    <h3>Die drei Wünsche:</h3>
+    <ol id="resultWishes"></ol>
+  </div>
+</section>
+
 <section id="adminView" class="hidden">
   <div class="hero">
     <h1>Admin<br><span class="gold">Wichteln 2026</span></h1>
-    <p class="muted">Hier stellst du Teilnehmerzahl und Versanddatum ein und siehst nur, wer sich bereits eingetragen hat.</p>
+    <p class="muted">Hier stellst du Teilnehmerzahl und Auslosungsdatum ein und siehst nur, wer sich bereits eingetragen hat.</p>
   </div>
   <div id="loginCard" class="card">
     <h2>Anmelden</h2>
@@ -57,7 +72,7 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
       <h2>Einstellungen</h2>
       <div class="row">
         <div><label>Teilnehmerzahl</label><input id="limit" type="number" min="2"></div>
-        <div><label>Versanddatum</label><input id="sendDate" type="date"></div>
+        <div><label>Auslosungsdatum</label><input id="sendDate" type="date"></div>
       </div>
       <button id="saveSettings">Speichern</button>
       <p id="settingsMsg"></p>
@@ -68,20 +83,11 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
       <div id="names"></div>
     </div>
     <div class="card">
-      <h2>Mail testen</h2>
-      <p class="muted">Schreib hier eine eigene Testliste und sende sie an deine E-Mail-Adresse. Damit prüfst du den Mailversand ohne echte Auslosung.</p>
-      <input id="testMailTo" type="email" placeholder="Deine E-Mail-Adresse">
-      <textarea id="testMailText" placeholder="Zum Beispiel:&#10;Testperson: Max&#10;Wunsch 1: Buch&#10;Wunsch 2: Kaffee&#10;Wunsch 3: Gutschein" style="width:100%;min-height:160px;padding:14px 15px;border-radius:12px;border:1px solid rgba(255,255,255,.18);font:inherit;margin-top:12px"></textarea>
-      <button id="sendTestMail">Testmail senden</button>
-      <p id="testMailMsg"></p>
-    </div>
-    <div class="card">
-      <h2>Kostenloser Mailversand</h2>
-      <p class="muted">Für den automatischen Versand ist Brevo Free vorbereitet. Dafür musst du einmal eine Absender-E-Mail bestätigen und anschließend hier den API-Schlüssel eintragen.</p>
-      <input id="senderEmail" type="email" placeholder="Absender-E-Mail">
-      <input id="mailKey" type="password" placeholder="Brevo API-Schlüssel">
-      <button id="saveMail">Mailzugang speichern</button>
-      <p id="mailMsg"></p>
+      <h2>Geheime Wichtel-Links</h2>
+      <p class="muted">Sobald alle Teilnehmer eingetragen sind, kannst du die Auslosung hier zum Testen sofort starten. Danach erhält jede Person ihren eigenen geheimen Link. Du kannst die Links z. B. privat per WhatsApp weitergeben.</p>
+      <button id="runDraw">Auslosung jetzt testen</button>
+      <p id="drawMsg"></p>
+      <div id="secretLinks"></div>
     </div>
   </div>
 </section>
@@ -89,11 +95,14 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
 
 <script>
 const API="https://ixwehyverlkeqpgjippr.supabase.co/functions/v1/wichteln-api";
-const isAdmin=new URLSearchParams(location.search).get("admin")==="1";
+const params=new URLSearchParams(location.search);const isAdmin=params.get("admin")==="1";const resultToken=params.get("result");
 const tokenKey="wichtel_admin_token";
 const qs=id=>document.getElementById(id);
-if(isAdmin){qs("publicView").classList.add("hidden");qs("adminView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadAdmin();}
-else loadPublic();
+if(resultToken){
+  qs("publicView").classList.add("hidden");qs("resultView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadResult();
+}else if(isAdmin){
+  qs("publicView").classList.add("hidden");qs("adminView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadAdmin();
+}else loadPublic();
 
 async function call(body,admin=false){
   const headers={"content-type":"application/json"};
@@ -131,8 +140,16 @@ async function loadAdmin(){
     qs("loginCard").classList.add("hidden");qs("adminPanel").classList.remove("hidden");
     qs("limit").value=d.settings.participant_limit||"";
     qs("sendDate").value=d.settings.send_date||"";
-    qs("senderEmail").value=d.settings.mail_sender_email||"";
-    qs("adminSummary").textContent=d.count+" von "+(d.settings.participant_limit||"–")+" eingetragen · Auslosung: "+(d.settings.draw_completed?"erfolgt":"offen")+" · Mail: "+(d.mail_ready?"bereit":"noch nicht eingerichtet");
+    qs("adminSummary").textContent=d.count+" von "+(d.settings.participant_limit||"–")+" eingetragen · Auslosung: "+(d.settings.draw_completed?"erfolgt":"offen");
+    qs("secretLinks").innerHTML="";
+    (d.links||[]).forEach(x=>{
+      const row=document.createElement("div");row.className="name";
+      const link=location.origin+location.pathname+"?result="+encodeURIComponent(x.token);
+      const label=document.createElement("div");label.textContent=x.name;
+      const btn=document.createElement("button");btn.textContent="Link kopieren";btn.style.marginTop="8px";
+      btn.addEventListener("click",async()=>{await navigator.clipboard.writeText(link);btn.textContent="Kopiert ✓";setTimeout(()=>btn.textContent="Link kopieren",1500)});
+      row.append(label,btn);qs("secretLinks").appendChild(row);
+    });
     qs("names").innerHTML="";
     d.names.forEach(n=>{const el=document.createElement("div");el.className="name";el.textContent=n;qs("names").appendChild(el)});
   }catch(e){
@@ -145,17 +162,22 @@ qs("saveSettings")?.addEventListener("click",async()=>{
     qs("settingsMsg").className="ok";qs("settingsMsg").textContent="Gespeichert.";loadAdmin();
   }catch(e){qs("settingsMsg").className="err";qs("settingsMsg").textContent=e.message}
 });
-qs("sendTestMail")?.addEventListener("click",async()=>{
- try{
-  await call({action:"test_mail",to:qs("testMailTo").value,text:qs("testMailText").value},true);
-  qs("testMailMsg").className="ok";qs("testMailMsg").textContent="Testmail wurde an Brevo übergeben.";
- }catch(e){qs("testMailMsg").className="err";qs("testMailMsg").textContent=e.message}
-});
-qs("saveMail")?.addEventListener("click",async()=>{
+async function loadResult(){
   try{
-    await call({action:"save_mail",sender_email:qs("senderEmail").value,api_key:qs("mailKey").value},true);
-    qs("mailMsg").className="ok";qs("mailMsg").textContent="Mailzugang gespeichert.";qs("mailKey").value="";loadAdmin();
-  }catch(e){qs("mailMsg").className="err";qs("mailMsg").textContent=e.message}
+    const d=await call({action:"result",token:resultToken});
+    qs("resultStatus").className="status ok";qs("resultStatus").textContent="Auslosung gefunden.";
+    qs("resultName").textContent=d.name;qs("resultWishes").innerHTML="";
+    d.wishes.forEach(w=>{const li=document.createElement("li");li.textContent=w;qs("resultWishes").appendChild(li)});
+    qs("resultCard").classList.remove("hidden");
+  }catch(e){qs("resultStatus").className="status err";qs("resultStatus").textContent=e.message}
+}
+qs("runDraw")?.addEventListener("click",async()=>{
+  try{
+    const d=await call({action:"run_now"},true);
+    if(d.status==="waiting")throw new Error("Die Auslosung kann erst starten, wenn alle eingetragen sind.");
+    qs("drawMsg").className="ok";qs("drawMsg").textContent="Auslosung erstellt. Die geheimen Links stehen unten.";
+    await loadAdmin();
+  }catch(e){qs("drawMsg").className="err";qs("drawMsg").textContent=e.message}
 });
 </script>
 </body>

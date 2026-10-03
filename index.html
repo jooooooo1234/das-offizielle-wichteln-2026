@@ -151,13 +151,20 @@ async function loadPublic(){
   }catch(e){qs("publicStatus").textContent="Status konnte nicht geladen werden.";qs("countdown").textContent="Countdown konnte nicht geladen werden."}
 }
 qs("regForm")?.addEventListener("submit",async e=>{
-  e.preventDefault();qs("regMsg").textContent="";
+  e.preventDefault();
+  qs("regMsg").textContent="";
+  const form=e.currentTarget;
   try{
-    const data=Object.fromEntries(new FormData(e.currentTarget));
+    const data=Object.fromEntries(new FormData(form));
     await call({action:"register",...data});
-    qs("regMsg").className="ok";qs("regMsg").textContent="Geschafft! Du bist beim Wichteln dabei. 🎁";
-    e.currentTarget.reset();loadPublic();
-  }catch(err){qs("regMsg").className="err";qs("regMsg").textContent=err.message;}
+    qs("regMsg").className="ok";
+    qs("regMsg").textContent="Geschafft! Du bist beim Wichteln dabei. 🎁";
+    form.reset();
+    loadPublic();
+  }catch(err){
+    qs("regMsg").className="err";
+    qs("regMsg").textContent=err.message;
+  }
 });
 qs("loginBtn")?.addEventListener("click",async()=>{
   try{

@@ -83,6 +83,12 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
       <div id="names"></div>
     </div>
     <div class="card">
+      <h2>Testdaten zurücksetzen</h2>
+      <p class="muted">Löscht alle eingetragenen Test-Teilnehmer und setzt die Auslosung zurück. Teilnehmerzahl und Auslosungsdatum bleiben erhalten.</p>
+      <button id="resetTest">Testdaten zurücksetzen</button>
+      <p id="resetMsg"></p>
+    </div>
+    <div class="card">
       <h2>Geheime Wichtel-Links</h2>
       <p class="muted">Sobald alle Teilnehmer eingetragen sind, kannst du die Auslosung hier zum Testen sofort starten. Danach erhält jede Person ihren eigenen geheimen Link. Du kannst die Links z. B. privat per WhatsApp weitergeben.</p>
       <button id="runDraw">Auslosung jetzt testen</button>
@@ -171,6 +177,14 @@ async function loadResult(){
     qs("resultCard").classList.remove("hidden");
   }catch(e){qs("resultStatus").className="status err";qs("resultStatus").textContent=e.message}
 }
+qs("resetTest")?.addEventListener("click",async()=>{
+  if(!confirm("Wirklich alle Test-Teilnehmer löschen und die Auslosung zurücksetzen?"))return;
+  try{
+    await call({action:"reset_test"},true);
+    qs("resetMsg").className="ok";qs("resetMsg").textContent="Testdaten wurden zurückgesetzt.";
+    await loadAdmin();
+  }catch(e){qs("resetMsg").className="err";qs("resetMsg").textContent=e.message}
+});
 qs("runDraw")?.addEventListener("click",async()=>{
   try{
     const d=await call({action:"run_now"},true);

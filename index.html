@@ -81,6 +81,7 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
       <h2>Status</h2>
       <div id="adminSummary" class="status">Lade …</div>
       <div id="names"></div>
+      <p class="muted" style="font-size:13px">Die Teilnehmerzahl kann während der Anmeldung jederzeit geändert werden, solange noch nicht ausgelost wurde. Sie kann nicht kleiner als die aktuell eingetragene Anzahl gesetzt werden.</p>
     </div>
     <div class="card">
       <h2>Testdaten zurücksetzen</h2>
@@ -189,7 +190,30 @@ async function loadAdmin(){
       row.append(label,btn);qs("secretLinks").appendChild(row);
     });
     qs("names").innerHTML="";
-    d.names.forEach(n=>{const el=document.createElement("div");el.className="name";el.textContent=n;qs("names").appendChild(el)});
+    (d.participants||[]).forEach(p=>{
+      const row=document.createElement("div");
+      row.className="name";
+      row.style.display="flex";
+      row.style.justifyContent="space-between";
+      row.style.alignItems="center";
+      row.style.gap="12px";
+      const label=document.createElement("span");
+      label.textContent=p.name;
+      const del=document.createElement("button");
+      del.type="button";
+      del.textContent="Löschen";
+      del.style.padding="8px 12px";
+      del.disabled=!!d.settings.draw_completed;
+      del.addEventListener("click",async()=>{
+        if(!confirm(p.name+" wirklich aus der Runde löschen?"))return;
+        try{
+          await call({action:"delete_participant",id:p.id},true);
+          await loadAdmin();
+        }catch(e){alert(e.message)}
+      });
+      row.append(label,del);
+      qs("names").appendChild(row);
+    });
   }catch(e){
     localStorage.removeItem(tokenKey);qs("loginCard").classList.remove("hidden");qs("adminPanel").classList.add("hidden");
   }

@@ -102,7 +102,7 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
 
 <script>
 const API="https://ixwehyverlkeqpgjippr.supabase.co/functions/v1/wichteln-api";
-const params=new URLSearchParams(location.search);const isAdmin=params.get("admin")==="1";const resultToken=params.get("result");const exampleMax=params.get("beispiel")==="max-musterland";
+const params=new URLSearchParams(location.search);const isAdmin=params.get("admin")==="1";const resultToken=params.get("result");const exampleId=params.get("beispiel");const exampleMax=exampleId==="max-musterland"||exampleId==="max-mustermann";
 const tokenKey="wichtel_admin_token";
 const qs=id=>document.getElementById(id);
 let countdownTimer=null;
@@ -119,9 +119,20 @@ if(exampleMax){
   qs("resultView").querySelector(".eyebrow").textContent="🎁 BEISPIEL-LINK · KEINE ECHTE AUSLOSUNG";
   qs("resultStatus").className="status";
   qs("resultStatus").textContent="Beispiel-Wunschliste – die echte Wichtelauslosung bleibt unverändert.";
-  qs("resultName").textContent="Max Musterland";
+  qs("resultName").textContent=exampleId==="max-mustermann"?"Max Mustermann":"Max Musterland";
   const wishes=qs("resultWishes");
-  ["Auto","Fahrrad","Lego"].forEach(w=>{const li=document.createElement("li");li.textContent=w;wishes.appendChild(li)});
+  const sampleWishes=exampleId==="max-mustermann"?[
+    "LEGO Technic: https://www.amazon.de/s?k=LEGO+Technic",
+    "Bluetooth-Lautsprecher: https://www.amazon.de/s?k=Bluetooth+Lautsprecher",
+    "Fahrradlicht: https://www.amazon.de/s?k=Fahrradlicht"
+  ]:["Auto","Fahrrad","Lego"];
+  sampleWishes.forEach(w=>{
+    const li=document.createElement("li");
+    li.style.whiteSpace="pre-wrap";
+    li.style.overflowWrap="anywhere";
+    appendWishWithLinks(li,w);
+    wishes.appendChild(li);
+  });
   qs("resultCard").classList.remove("hidden");
 }else if(resultToken){
   qs("publicView").classList.add("hidden");qs("resultView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadResult();

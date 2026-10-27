@@ -102,7 +102,7 @@ button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);colo
 
 <script>
 const API="https://ixwehyverlkeqpgjippr.supabase.co/functions/v1/wichteln-api";
-const params=new URLSearchParams(location.search);const isAdmin=params.get("admin")==="1";const resultToken=params.get("result");
+const params=new URLSearchParams(location.search);const isAdmin=params.get("admin")==="1";const resultToken=params.get("result");const exampleMax=params.get("beispiel")==="max-musterland";
 const tokenKey="wichtel_admin_token";
 const qs=id=>document.getElementById(id);
 let countdownTimer=null;
@@ -111,7 +111,19 @@ function formatDateDE(dateStr){
   const m=dateStr.match(/^(\d{4})-(\d{2})-(\d{2})$/);
   return m?m[3]+"."+m[2]+"."+m[1]:dateStr;
 }
-if(resultToken){
+if(exampleMax){
+  qs("publicView").classList.add("hidden");
+  qs("resultView").classList.remove("hidden");
+  qs("switchLink").textContent="Teilnehmerseite";
+  qs("switchLink").href="./";
+  qs("resultView").querySelector(".eyebrow").textContent="🎁 BEISPIEL-LINK · KEINE ECHTE AUSLOSUNG";
+  qs("resultStatus").className="status";
+  qs("resultStatus").textContent="Beispiel-Wunschliste – die echte Wichtelauslosung bleibt unverändert.";
+  qs("resultName").textContent="Max Musterland";
+  const wishes=qs("resultWishes");
+  ["Auto","Fahrrad","Lego"].forEach(w=>{const li=document.createElement("li");li.textContent=w;wishes.appendChild(li)});
+  qs("resultCard").classList.remove("hidden");
+}else if(resultToken){
   qs("publicView").classList.add("hidden");qs("resultView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadResult();
 }else if(isAdmin){
   qs("publicView").classList.add("hidden");qs("adminView").classList.remove("hidden");qs("switchLink").textContent="Teilnehmerseite";qs("switchLink").href="./";loadAdmin();

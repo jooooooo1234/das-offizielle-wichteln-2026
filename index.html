@@ -12,7 +12,7 @@
 .topbar{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}.link{color:var(--gold);text-decoration:none;font-weight:700}
 .grid{display:grid;gap:12px}.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}input{width:100%;padding:14px 15px;border:1px solid rgba(255,255,255,.18);border-radius:12px;background:#fff;color:#111;font-size:16px}
 button{padding:14px 18px;border:0;border-radius:12px;background:var(--gold);color:#10251f;font-weight:900;font-size:16px;cursor:pointer}button:disabled{opacity:.5;cursor:not-allowed}
-.status{padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.22);margin:16px 0;overflow-wrap:normal;word-break:normal}.ok{color:var(--ok)}.err{color:var(--danger)}.hidden{display:none}.name{padding:11px 13px;background:rgba(0,0,0,.22);border-radius:10px;margin:8px 0}
+.status{padding:12px 14px;border-radius:12px;background:rgba(0,0,0,.22);margin:16px 0;overflow-wrap:normal;word-break:normal}.wish-link{color:var(--gold);text-decoration:underline;text-underline-offset:2px;overflow-wrap:anywhere}.ok{color:var(--ok)}.err{color:var(--danger)}.hidden{display:none}.name{padding:11px 13px;background:rgba(0,0,0,.22);border-radius:10px;margin:8px 0}
 @media(max-width:620px){.row{grid-template-columns:1fr}.hero{padding:22px}.wrap{padding-top:18px}.status{font-size:15px;line-height:1.45}}
 </style>
 </head>
@@ -236,12 +236,44 @@ qs("saveSettings")?.addEventListener("click",async()=>{
     qs("settingsMsg").className="ok";qs("settingsMsg").textContent="Gespeichert.";loadAdmin();
   }catch(e){qs("settingsMsg").className="err";qs("settingsMsg").textContent=e.message}
 });
+function appendWishWithLinks(element,wish){
+  const value=String(wish??"");
+  const linkPattern=/\b(?:https?:\/\/|www\.)[^\s<>"']+|\b(?:[a-z0-9-]+\.)+[a-z]{2,24}(?:\/[^\s<>"']*)?/gi;
+  let pos=0;
+  for(const match of value.matchAll(linkPattern)){
+    const raw=match[0];
+    const clean=raw.replace(/[.,;:!?\)\]]+$/,"");
+    if(!clean||match.index<pos)continue;
+    let url;
+    try{
+      url=new URL(/^https?:\/\//i.test(clean)?clean:"https://"+clean);
+      if(url.protocol!=="https:"&&url.protocol!=="http:")continue;
+    }catch{continue}
+    element.appendChild(document.createTextNode(value.slice(pos,match.index)));
+    const a=document.createElement("a");
+    a.href=url.href;
+    a.textContent=clean;
+    a.target="_blank";
+    a.rel="noopener noreferrer";
+    a.className="wish-link";
+    element.appendChild(a);
+    element.appendChild(document.createTextNode(raw.slice(clean.length)));
+    pos=match.index+raw.length;
+  }
+  element.appendChild(document.createTextNode(value.slice(pos)));
+}
 async function loadResult(){
   try{
     const d=await call({action:"result",token:resultToken});
     qs("resultStatus").className="status ok";qs("resultStatus").textContent="Auslosung gefunden.";
     qs("resultName").textContent=d.name;qs("resultWishes").innerHTML="";
-    d.wishes.forEach(w=>{const li=document.createElement("li");li.textContent=w;qs("resultWishes").appendChild(li)});
+    d.wishes.forEach(w=>{
+      const li=document.createElement("li");
+      li.style.whiteSpace="pre-wrap";
+      li.style.overflowWrap="anywhere";
+      appendWishWithLinks(li,w);
+      qs("resultWishes").appendChild(li);
+    });
     qs("resultCard").classList.remove("hidden");
   }catch(e){qs("resultStatus").className="status err";qs("resultStatus").textContent=e.message}
 }
